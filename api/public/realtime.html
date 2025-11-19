@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset="utf-8"><title>Realtime</title>
+<style>
+  body{font-family:system-ui,Arial;margin:20px}
+  .ok{color:green}.bad{color:#b00}
+  li{margin:6px 0}
+</style>
+<h1>Realtime Task Events</h1>
+<p>Status: <span id="s" class="bad">disconnected</span></p>
+<ul id="feed"></ul>
+
+<!-- ??????? socket.io ?? -->
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const s = io();
+  const label = document.getElementById("s");
+  const feed  = document.getElementById("feed");
+
+  function add(msg){
+    const li = document.createElement("li");
+    li.textContent = msg;
+    feed.prepend(li);
+  }
+
+  s.on("connect", () => {
+    label.textContent = "connected";
+    label.className = "ok";
+  });
+
+  s.on("disconnect", () => {
+    label.textContent = "disconnected";
+    label.className = "bad";
+  });
+
+  s.on("task_created", e => add(`created  #${e.id} "${e.title}"`));
+  s.on("task_assigned", e => add(`assigned #${e.id} -> [${e.user_ids}]`));
+  s.on("task_status_changed", e => add(`status   #${e.id} -> ${e.status}`));
+</script>

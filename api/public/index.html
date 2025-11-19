@@ -1,0 +1,216 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>ECE1779 Task Manager – Mini UI</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 20px; max-width: 980px; }
+    h1 { margin-bottom: 4px; }
+    h2 { margin-top: 24px; }
+    label { display:block; margin:4px 0; }
+    input, select, button { margin:2px 0; padding:4px; }
+    input, select { min-width: 220px; }
+    section { border:1px solid #ddd; padding:10px 14px; border-radius:8px; margin:10px 0; }
+    pre { background:#f8f8f8; padding:8px; border-radius:6px; max-height:260px; overflow:auto; }
+    #log { max-height:140px; }
+    small { color:#666; }
+  </style>
+</head>
+<body>
+  <h1>ECE1779 Task Manager</h1>
+
+  <section>
+    <h2>1. Login</h2>
+    <label>Email:
+      <input id="login-email" value="zicong.shao@mail.utoronto.ca">
+    </label>
+    <label>Password:
+      <input id="login-password" type="password" value="12345">
+    </label>
+    <button id="btn-login">Login</button>
+    <div id="login-status"></div>
+  </section>
+
+  <section>
+    <h2>2. Create Task</h2>
+    <label>Project ID:
+      <input id="create-project-id" placeholder="e.g. 1">
+    </label>
+    <label>Title:
+      <input id="create-title" placeholder="Kickoff meeting">
+    </label>
+    <label>Description:
+      <input id="create-desc" placeholder="Optional">
+    </label>
+    <label>Assignee IDs (comma separated):
+      <input id="create-assignees" placeholder="e.g. 3">
+    </label>
+    <button id="btn-create-task">Create Task</button>
+  </section>
+
+  <section>
+    <h2>3. Assign & Change Status</h2>
+    <label>Task ID:
+      <input id="task-id" placeholder="Task ID">
+    </label>
+    <label>Assignee IDs (comma separated):
+      <input id="assign-assignees" placeholder="e.g. 3,4">
+    </label>
+    <button id="btn-assign">Add Assignees</button>
+    <br>
+    <label>Status:
+      <select id="status">
+        <option>To-Do</option>
+        <option>In Progress</option>
+        <option>Done</option>
+      </select>
+    </label>
+    <button id="btn-status">Update Status</button>
+  </section>
+
+  <section>
+    <h2>4. View Tasks, Search & Activity</h2>
+    <h3>4.1 Search / list tasks</h3>
+    <label>Keyword:
+      <input id="search-query" placeholder="Search in title/description">
+    </label>
+    <label>Assignee ID:
+      <input id="search-assignee-id" placeholder="Filter by assignee_id">
+    </label>
+    <button id="btn-load-tasks">Load My Tasks</button>
+    <pre id="tasks"></pre>
+
+    <h3>4.2 Activity timeline</h3>
+    <label>Task ID for activity:
+      <input id="activity-task-id" placeholder="Task ID">
+    </label>
+    <button id="btn-activity">Load Activity</button>
+    <pre id="activity"></pre>
+  </section>
+
+  <section>
+    <h2>Log</h2>
+    <pre id="log"></pre>
+  </section>
+
+<script>
+  const logEl = document.getElementById("log");
+  function log(msg) {
+    const time = new Date().toLocaleTimeString();
+    logEl.textContent = "[" + time + "] " + msg + "\n" + logEl.textContent;
+  }
+
+  async function api(path, options = {}) {
+    const res = await fetch(path, {
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      ...options
+    });
+    if (!res.ok) {
+      let text;
+      try { text = await res.text(); } catch { text = res.statusText; }
+      throw new Error("HTTP " + res.status + ": " + text);
+    }
+    const ct = res.headers.get("content-type") || "";
+    if (ct.includes("application/json")) return res.json();
+    return res.text();
+  }
+
+  document.getElementById("btn-login").onclick = async () => {
+    const email = document.getElementById("login-email").value.trim();
+    const password = document.getElementById("login-password").value;
+    try {
+      const data = await api("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password })
+      });
+      document.getElementById("login-status").textContent =
+        "Logged in as " + data.email + " (id " + data.id + ")";
+      log("Login success");
+    } catch (err) {
+      document.getElementById("login-status").textContent = "Login failed";
+      log(err.message);
+    }
+  };
+
+  document.getElementById("btn-create-task").onclick = async () => {
+    const project_id = Number(document.getElementById("create-project-id").value);
+    const title = document.getElementById("create-title").value.trim();
+    const description = document.getElementById("create-desc").value.trim();
+    const assigneesStr = document.getElementById("create-assignees").value.trim();
+    const assignees = assigneesStr
+      ? assigneesStr.split(",").map(s => Number(s.trim())).filter(Boolean)
+      : [];
+    try {
+      const task = await api("/tasks", {
+        method: "POST",
+        body: JSON.stringify({ project_id, title, description, assignees })
+      });
+      log("Created task #" + task.id);
+      document.getElementById("task-id").value = task.id;
+      document.getElementById("activity-task-id").value = task.id;
+    } catch (err) {
+      log(err.message);
+    }
+  };
+
+  document.getElementById("btn-assign").onclick = async () => {
+    const id = Number(document.getElementById("task-id").value);
+    const assigneesStr = document.getElementById("assign-assignees").value.trim();
+    const user_ids = assigneesStr
+      ? assigneesStr.split(",").map(s => Number(s.trim())).filter(Boolean)
+      : [];
+    try {
+      await api("/tasks/" + id + "/assignees", {
+        method: "POST",
+        body: JSON.stringify({ user_ids })
+      });
+      log("Assigned users [" + user_ids.join(",") + "] to task #" + id);
+    } catch (err) {
+      log(err.message);
+    }
+  };
+
+  document.getElementById("btn-status").onclick = async () => {
+    const id = Number(document.getElementById("task-id").value);
+    const status = document.getElementById("status").value;
+    try {
+      await api("/tasks/" + id + "/status", {
+        method: "PATCH",
+        body: JSON.stringify({ status })
+      });
+      log("Changed status of #" + id + " to " + status);
+    } catch (err) {
+      log(err.message);
+    }
+  };
+
+  document.getElementById("btn-load-tasks").onclick = async () => {
+    const q = document.getElementById("search-query").value.trim();
+    const assId = document.getElementById("search-assignee-id").value.trim();
+    const params = [];
+    if (q) params.push("query=" + encodeURIComponent(q));
+    if (assId) params.push("assignee_id=" + encodeURIComponent(assId));
+    const qs = params.length ? ("?" + params.join("&")) : "";
+    try {
+      const tasks = await api("/tasks" + qs);
+      document.getElementById("tasks").textContent = JSON.stringify(tasks, null, 2);
+      log("Loaded tasks (" + tasks.length + ")");
+    } catch (err) {
+      log(err.message);
+    }
+  };
+
+  document.getElementById("btn-activity").onclick = async () => {
+    const id = Number(document.getElementById("activity-task-id").value);
+    try {
+      const acts = await api("/tasks/" + id + "/activity");
+      document.getElementById("activity").textContent = JSON.stringify(acts, null, 2);
+      log("Loaded activity for #" + id);
+    } catch (err) {
+      log(err.message);
+    }
+  };
+</script>
+</body>
+</html>

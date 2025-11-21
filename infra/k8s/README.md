@@ -9,6 +9,7 @@ k8s/
 ├── README.md                      # This file
 ├── KUBERNETES_DEPLOYMENT.md       # Complete deployment guide
 ├── QUICK_REFERENCE.md            # Quick command reference
+├── DEMO_SETUP.md                 # Demo users and data setup guide
 │
 ├── namespace.yaml                # Namespace definition
 ├── secrets.yaml                  # Sensitive data (passwords, keys)
@@ -31,7 +32,9 @@ k8s/
 ├── deploy.ps1                    # Deployment script (Windows)
 ├── update.sh                     # Update script
 ├── rollback.sh                   # Rollback script
-└── cleanup.sh                    # Cleanup script
+├── cleanup.sh                    # Cleanup script
+├── demo-realtime.ps1             # Real-time events demo (Windows)
+└── demo-realtime.sh              # Real-time events demo (Linux/Mac)
 ```
 
 ## 🚀 Quick Start
@@ -112,6 +115,18 @@ kubectl exec -it postgres-0 -n taskmanager -- psql -U taskapp -d taskdb
 ```bash
 kubectl get ingress -n taskmanager
 ```
+
+### Test Real-time Features
+```bash
+# Windows
+.\demo-realtime.ps1
+
+# Linux/Mac
+chmod +x demo-realtime.sh
+./demo-realtime.sh
+```
+
+This will demonstrate Socket.IO real-time events by opening the realtime.html page and performing various task operations. Watch as events appear instantly!
 
 ## 🆘 Troubleshooting
 

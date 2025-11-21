@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-script
+  namespace: taskmanager
+data:
+  init.sql: |
+    CREATE TABLE IF NOT EXISTS users(
+      id SERIAL PRIMARY KEY, email TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, name TEXT
+    );
+    CREATE TABLE IF NOT EXISTS teams( id SERIAL PRIMARY KEY, name TEXT NOT NULL );
+    CREATE TABLE IF NOT EXISTS team_memberships(
+      user_id INT REFERENCES users(id), team_id INT REFERENCES teams(id),
+      role TEXT NOT NULL CHECK (role IN ('Admin','Member')), PRIMARY KEY(user_id,team_id)
+    );
+    CREATE TABLE IF NOT EXISTS projects(
+      id SERIAL PRIMARY KEY, team_id INT NOT NULL REFERENCES teams(id), name TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS tasks(
+      id SERIAL PRIMARY KEY, project_id INT NOT NULL REFERENCES projects(id),
+      title TEXT NOT NULL, description TEXT, status TEXT NOT NULL
+      CHECK (status IN ('To-Do','In Progress','Done')) DEFAULT 'To-Do',
+      created_by INT NOT NULL REFERENCES users(id), created_at TIMESTAMP DEFAULT now(),
+      updated_at TIMESTAMP DEFAULT now()
+    );
+    CREATE TABLE IF NOT EXISTS task_assignees(
+      task_id INT REFERENCES tasks(id) ON DELETE CASCADE, user_id INT REFERENCES users(id),
+      PRIMARY KEY(task_id,user_id)
+    );
+    CREATE TABLE IF NOT EXISTS task_activity_log(
+      id SERIAL PRIMARY KEY, task_id INT REFERENCES tasks(id) ON DELETE CASCADE,
+      actor_id INT REFERENCES users(id), type TEXT NOT NULL
+      CHECK (type IN ('created','assigned','unassigned','status_changed','updated')),
+      details JSONB, at TIMESTAMP DEFAULT now()
+    );
+

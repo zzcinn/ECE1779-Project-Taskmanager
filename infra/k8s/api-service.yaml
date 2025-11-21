@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: taskmanager-api-service
+  namespace: taskmanager
+  labels:
+    app: taskmanager-api
+spec:
+  type: ClusterIP
+  selector:
+    app: taskmanager-api
+  ports:
+  - port: 3000
+    targetPort: 3000
+    protocol: TCP
+    name: http
+  sessionAffinity: ClientIP  # Important for Socket.IO sticky sessions
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800  # 3 hours
+

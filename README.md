@@ -1,88 +1,286 @@
-\## Quick Start (Windows + PowerShell)
+# Task Manager Application
 
+A collaborative task management application with real-time updates, built for ECE1779.
 
+## 🌟 Features
 
-From the project root:
+- **User Authentication**: Secure registration and login
+- **Team Management**: Create teams and manage memberships with role-based access (Admin/Member)
+- **Projects & Tasks**: Organize tasks within team projects
+- **Real-time Updates**: Socket.IO powered live task updates across all clients
+- **Task Assignment**: Assign tasks to team members
+- **Task Status Tracking**: Track tasks through To-Do, In Progress, and Done states
+- **Activity Logging**: Complete audit trail of all task activities
+- **Search & Filtering**: Find tasks by title, description, or assignee
 
+## 🏗️ Architecture
 
+- **Backend**: Node.js + Express.js
+- **Database**: PostgreSQL 16
+- **Real-time**: Socket.IO for WebSocket connections
+- **Session Management**: PostgreSQL-backed session storage
+- **Authentication**: bcrypt for password hashing
+
+## 🚀 Deployment Options
+
+### Option 1: Local Development (Docker Compose)
+
+Perfect for development and testing.
+
+**Prerequisites:**
+- Docker and Docker Compose installed
+
+**Quick Start (Windows + PowerShell):**
 
 ```powershell
+cd .\infra
 
-cd .\\infra
-
-
-
-\# 1) Start containers
-
+# 1) Start containers
 docker compose up -d
 
-
-
-\# 2) Register demo users (Zicong and Alex)
+# 2) Register demo users (Zicong and Alex)
+Invoke-RestMethod -Uri http://localhost:3000/auth/register -Method Post `
+  -ContentType 'application/json' `
+  -Body '{"email":"zicong.shao@mail.utoronto.ca","password":"12345","name":"Zicong"}' | Out-Null
 
 Invoke-RestMethod -Uri http://localhost:3000/auth/register -Method Post `
+  -ContentType 'application/json' `
+  -Body '{"email":"a.chia@mail.utoronto.ca","password":"12345","name":"Alex"}' | Out-Null
 
-&nbsp; -ContentType 'application/json' `
-
-&nbsp; -Body '{"email":"zicong.shao@mail.utoronto.ca","password":"12345","name":"Zicong"}' | Out-Null
-
-
-
-Invoke-RestMethod -Uri http://localhost:3000/auth/register -Method Post `
-
-&nbsp; -ContentType 'application/json' `
-
-&nbsp; -Body '{"email":"a.chia@mail.utoronto.ca","password":"12345","name":"Alex"}' | Out-Null
-
-
-
-\# 3) Check user IDs
-
+# 3) Check user IDs
 docker compose exec -T db `
+  psql -U taskapp -d taskdb `
+  -c "SELECT id, email, name FROM users ORDER BY id;"
 
-&nbsp; psql -U taskapp -d taskdb `
-
-&nbsp; -c "SELECT id, email, name FROM users ORDER BY id;"
-
-
-
-\# 4) Create Team 14
-
+# 4) Create Team 14
 docker compose exec -T db `
+  psql -U taskapp -d taskdb `
+  -c "INSERT INTO teams(name) VALUES('Team 14') RETURNING id, name;"
 
-&nbsp; psql -U taskapp -d taskdb `
-
-&nbsp; -c "INSERT INTO teams(name) VALUES('Team 14') RETURNING id, name;"
-
-
-
-\# 5) Make Zicong the Admin of Team 14 (assumes Zicong has user\_id = 1 and team\_id = 1)
-
+# 5) Make Zicong the Admin of Team 14
 docker compose exec -T db `
+  psql -U taskapp -d taskdb `
+  -c "INSERT INTO team_memberships(user_id, team_id, role) VALUES(1, 1, 'Admin');"
 
-&nbsp; psql -U taskapp -d taskdb `
-
-&nbsp; -c "INSERT INTO team\_memberships(user\_id, team\_id, role) VALUES(1, 1, 'Admin');"
-
-
-
-\# 6) Create the ECE1779 project under Team 14
-
+# 6) Create the ECE1779 project under Team 14
 docker compose exec -T db `
+  psql -U taskapp -d taskdb `
+  -c "INSERT INTO projects(team_id, name) VALUES(1, 'ECE1779 Task Board') RETURNING id, team_id, name;"
 
-&nbsp; psql -U taskapp -d taskdb `
+# Access the application:
+#   Web UI: http://localhost:3000/
+#   Real-time: http://localhost:3000/realtime.html
+```
 
-&nbsp; -c "INSERT INTO projects(team\_id, name) VALUES(1, 'ECE1779 Task Board') RETURNING id, team\_id, name;"
+**Linux/Mac:**
 
+```bash
+cd infra
 
+# Start containers
+docker compose up -d
 
-\# Web UI:
+# Access at http://localhost:3000/
+```
 
-\#   http://localhost:3000/
+### Option 2: Production Deployment (Kubernetes on DigitalOcean)
 
-\# Real-time updates:
+Scalable, production-ready deployment with high availability.
 
-\#   http://localhost:3000/realtime.html
+**Prerequisites:**
+- DigitalOcean account
+- kubectl installed
+- doctl (DigitalOcean CLI) installed
 
+**Quick Deploy:**
 
+```bash
+# Navigate to k8s directory
+cd infra/k8s
+
+# Deploy everything
+./deploy.sh          # Linux/Mac
+./deploy.ps1         # Windows PowerShell
+```
+
+**📖 Complete Guide:** See [infra/k8s/KUBERNETES_DEPLOYMENT.md](infra/k8s/KUBERNETES_DEPLOYMENT.md) for:
+- Step-by-step DigitalOcean cluster setup
+- Container registry configuration
+- SSL/TLS setup with Let's Encrypt
+- Domain configuration
+- Monitoring and scaling
+- Troubleshooting
+
+**🔧 Quick Reference:** See [infra/k8s/QUICK_REFERENCE.md](infra/k8s/QUICK_REFERENCE.md) for common commands and operations.
+
+## 📁 Project Structure
+
+```
+ECE1779-Project-Taskmanager/
+├── api/
+│   ├── app.js              # Main application server
+│   ├── package.json        # Node.js dependencies
+│   ├── Dockerfile          # Container image definition
+│   └── public/             # Static HTML files
+│       ├── index.html      # Main UI
+│       └── realtime.html   # Real-time demo page
+├── infra/
+│   ├── compose.yml         # Docker Compose configuration
+│   ├── db/
+│   │   └── init.sql        # Database schema
+│   └── k8s/                # Kubernetes manifests
+│       ├── *.yaml          # K8s resource definitions
+│       ├── deploy.sh       # Deployment scripts
+│       ├── KUBERNETES_DEPLOYMENT.md    # Full K8s guide
+│       └── QUICK_REFERENCE.md          # Command reference
+└── README.md               # This file
+```
+
+## 🔌 API Endpoints
+
+### Authentication
+- `POST /auth/register` - Register new user
+- `POST /auth/login` - Login
+- `POST /auth/logout` - Logout
+
+### Teams
+- `POST /teams` - Create team
+- `POST /teams/:id/members` - Add team member
+
+### Projects
+- `POST /projects` - Create project
+
+### Tasks
+- `POST /tasks` - Create task
+- `GET /tasks` - List tasks (with optional filtering)
+- `POST /tasks/:id/assignees` - Assign users to task
+- `PATCH /tasks/:id/status` - Update task status
+- `GET /tasks/:id/activity` - Get task activity log
+
+### Health
+- `GET /check` - Health check endpoint
+
+## 🔄 Real-time Events
+
+Socket.IO events emitted by the server:
+- `task_created` - New task created
+- `task_assigned` - Task assigned to users
+- `task_status_changed` - Task status updated
+
+## 🗄️ Database Schema
+
+- **users** - User accounts
+- **teams** - Team definitions
+- **team_memberships** - User-team relationships with roles
+- **projects** - Projects within teams
+- **tasks** - Task items
+- **task_assignees** - Task assignments
+- **task_activity_log** - Complete activity audit trail
+
+## 🛠️ Development
+
+### Running Locally (without Docker)
+
+```bash
+# Install PostgreSQL 16
+# Create database and run init.sql
+
+cd api
+npm install
+
+# Create .env file
+cat > .env << EOF
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=taskdb
+DB_USER=taskapp
+DB_PASSWORD=taskpass
+SESSION_SECRET=your_session_secret
+EOF
+
+npm run dev
+```
+
+### Building Docker Image
+
+```bash
+cd api
+docker build -t taskmanager-api:latest .
+```
+
+## 🔐 Security Notes
+
+- **Change default passwords** in production!
+- Use **strong session secrets** (generate with `openssl rand -base64 32`)
+- Enable **SSL/TLS** for production deployments
+- Regularly **update dependencies** for security patches
+- Use **environment variables** for sensitive configuration
+- Never commit secrets to version control
+
+## 📊 Monitoring & Operations
+
+### Docker Compose
+
+```bash
+# View logs
+docker compose logs -f api
+
+# Access database
+docker compose exec db psql -U taskapp -d taskdb
+
+# Stop services
+docker compose down
+```
+
+### Kubernetes
+
+```bash
+# View logs
+kubectl logs -f -l app=taskmanager-api -n taskmanager
+
+# Check status
+kubectl get all -n taskmanager
+
+# Access database
+kubectl exec -it postgres-0 -n taskmanager -- psql -U taskapp -d taskdb
+```
+
+## 🐛 Troubleshooting
+
+### Docker Compose Issues
+
+**Database connection failed:**
+```bash
+# Check if database is ready
+docker compose ps
+docker compose logs db
+```
+
+**Port already in use:**
+```bash
+# Change port in compose.yml or stop conflicting service
+```
+
+### Kubernetes Issues
+
+See [infra/k8s/QUICK_REFERENCE.md](infra/k8s/QUICK_REFERENCE.md) for comprehensive troubleshooting guide.
+
+## 📚 Additional Resources
+
+- [Docker Compose Documentation](https://docs.docker.com/compose/)
+- [Kubernetes Documentation](https://kubernetes.io/docs/)
+- [DigitalOcean Kubernetes Guide](https://docs.digitalocean.com/products/kubernetes/)
+- [Express.js Documentation](https://expressjs.com/)
+- [Socket.IO Documentation](https://socket.io/docs/)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+
+## 👥 Team
+
+ECE1779 - Team 14
+- Zicong Shao
+- Alex Chia
+
+## 📝 License
+
+This project is part of ECE1779 course work.
 

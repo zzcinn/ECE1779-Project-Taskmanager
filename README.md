@@ -284,3 +284,104 @@ ECE1779 - Team 14
 
 This project is part of ECE1779 course work.
 
+
+## Automated Database Backups to DigitalOcean Spaces
+
+This section describes how to run and schedule automated PostgreSQL backups from the Docker
+infrastructure to a DigitalOcean Spaces bucket.
+
+The backup logic lives under the `infra/` folder and is implemented in:
+
+- `infra/compose.yml` – defines the `db` PostgreSQL container.
+- `infra/backup_to_spaces.ps1` – PowerShell script that dumps the database and uploads it to Spaces.
+- `infra/backups/` – local folder where `.sql` dump files are stored before upload.
+
+---
+
+### 1. One-time setup on DigitalOcean
+
+1. **Create a Spaces bucket**
+
+   - Go to **Spaces Object Storage** in the DigitalOcean control panel.
+   - Create a bucket with:
+     - **Name:** `ece1779-taskmanager-backups`
+     - **Region:** `TOR1` (API region code: `tor1`)
+     - **Storage type:** Standard
+   - After creation, the bucket origin URL looks like:
+
+     ```text
+     https://ece1779-taskmanager-backups.tor1.digitaloceanspaces.com
+     ```
+
+2. **Create a Spaces access key**
+
+   - In the DO panel, open **Spaces → Access Keys**.
+   - Create a new access key (limited to this bucket is recommended).
+   - Save the two values:
+     - `Access key`
+     - `Secret key`
+   - These will be used when configuring the AWS CLI.
+
+---
+
+### 2. One-time setup on the backup machine
+
+  **Install AWS CLI v2**
+
+   - Download and install AWS CLI for Windows from the official installer, or:
+
+     ```powershell
+     winget install --id Amazon.AWSCLI -e
+     ```
+
+   - Verify:
+
+     ```powershell
+     aws --version
+     ```
+
+ **Configure AWS CLI to use DigitalOcean Spaces**
+
+   ```powershell
+   aws configure
+
+### 3. Run a Backup manually
+
+  # Go to infra
+  cd "<path-to-project>\infra"
+
+  # Make sure Docker services are running
+  docker compose up -d
+
+  # Run the backup script (dump + upload)
+  .\backup_to_spaces.ps1
+
+  # Check local backup files
+  ls .\backups
+  # Expect: taskdb_YYYYMMDD-HHMMSS.sql
+
+### 4. Run these once from an Administrator PowerShell
+  # Register a daily job at 01:00 AM
+  $scriptPath = (Resolve-Path .\backup_to_spaces.ps1).Path
+  $trigger    = New-JobTrigger -Daily -At 1:00am
+
+  Register-ScheduledJob -Name "DailyDbBackupToSpaces" -FilePath $scriptPath -Trigger $trigger
+
+  # List scheduled jobs (verify the job exists)
+  Get-ScheduledJob
+  # Expect: DailyDbBackupToSpaces
+
+  # Manually trigger the scheduled job once
+  Start-Job -DefinitionName "DailyDbBackupToSpaces"
+
+  # Check
+  ls .\backups
+
+### 5. Debugging
+  # See job instances and states
+  Get-Job
+  # Inspect output/errors of a specific job instance
+  Receive-Job -Id <jobId> -Keep
+
+
+

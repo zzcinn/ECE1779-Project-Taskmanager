@@ -17,7 +17,7 @@ After deployment, get your LoadBalancer IP:
 kubectl get ingress -n taskmanager
 ```
 
-For this guide, we'll use: **http://152.42.145.25** (replace with your actual IP)
+For this guide, we'll use: **http://209.38.0.81** (replace with your actual IP)
 
 ---
 
@@ -27,12 +27,12 @@ For this guide, we'll use: **http://152.42.145.25** (replace with your actual IP
 
 ```powershell
 # Register Zicong
-Invoke-RestMethod -Uri http://152.42.145.25/auth/register -Method Post `
+Invoke-RestMethod -Uri http://209.38.0.81/auth/register -Method Post `
   -ContentType 'application/json' `
   -Body '{"email":"zicong.shao@mail.utoronto.ca","password":"12345","name":"Zicong"}'
 
 # Register Alex
-Invoke-RestMethod -Uri http://152.42.145.25/auth/register -Method Post `
+Invoke-RestMethod -Uri http://209.38.0.81/auth/register -Method Post `
   -ContentType 'application/json' `
   -Body '{"email":"a.chia@mail.utoronto.ca","password":"12345","name":"Alex"}'
 ```
@@ -132,7 +132,7 @@ kubectl exec postgres-0 -n taskmanager -- `
 
 Open in your browser:
 ```
-http://152.42.145.25/
+http://209.38.0.81/
 ```
 
 **Login as Zicong:**
@@ -147,7 +147,7 @@ http://152.42.145.25/
 
 View live task updates:
 ```
-http://152.42.145.25/realtime.html
+http://209.38.0.81/realtime.html
 ```
 
 ---
@@ -158,7 +158,7 @@ http://152.42.145.25/realtime.html
 
 ```powershell
 # Login as Zicong
-$loginResponse = Invoke-WebRequest -Uri http://152.42.145.25/auth/login -Method Post `
+$loginResponse = Invoke-WebRequest -Uri http://209.38.0.81/auth/login -Method Post `
   -ContentType 'application/json' `
   -Body '{"email":"zicong.shao@mail.utoronto.ca","password":"12345"}' `
   -SessionVariable session
@@ -178,7 +178,7 @@ $taskData = @{
     assignees = @(1, 2)  # Assign to both Zicong and Alex
 } | ConvertTo-Json
 
-Invoke-RestMethod -Uri http://152.42.145.25/tasks -Method Post `
+Invoke-RestMethod -Uri http://209.38.0.81/tasks -Method Post `
   -ContentType 'application/json' `
   -Body $taskData `
   -WebSession $session
@@ -188,7 +188,7 @@ Invoke-RestMethod -Uri http://152.42.145.25/tasks -Method Post `
 
 ```powershell
 # Get all tasks
-Invoke-RestMethod -Uri http://152.42.145.25/tasks -WebSession $session
+Invoke-RestMethod -Uri http://209.38.0.81/tasks -WebSession $session
 ```
 
 ### Update Task Status
@@ -199,7 +199,7 @@ $statusUpdate = @{
     status = "In Progress"
 } | ConvertTo-Json
 
-Invoke-RestMethod -Uri http://152.42.145.25/tasks/1/status -Method Patch `
+Invoke-RestMethod -Uri http://209.38.0.81/tasks/1/status -Method Patch `
   -ContentType 'application/json' `
   -Body $statusUpdate `
   -WebSession $session
@@ -213,7 +213,7 @@ $assignData = @{
     user_ids = @(2)  # Assign to Alex
 } | ConvertTo-Json
 
-Invoke-RestMethod -Uri http://152.42.145.25/tasks/1/assignees -Method Post `
+Invoke-RestMethod -Uri http://209.38.0.81/tasks/1/assignees -Method Post `
   -ContentType 'application/json' `
   -Body $assignData `
   -WebSession $session
@@ -223,7 +223,7 @@ Invoke-RestMethod -Uri http://152.42.145.25/tasks/1/assignees -Method Post `
 
 ```powershell
 # View activity history for task 1
-Invoke-RestMethod -Uri http://152.42.145.25/tasks/1/activity -WebSession $session
+Invoke-RestMethod -Uri http://209.38.0.81/tasks/1/activity -WebSession $session
 ```
 
 ---
@@ -236,12 +236,12 @@ If you're using Linux or Mac, use these equivalent commands:
 
 ```bash
 # Register Zicong
-curl -X POST http://152.42.145.25/auth/register \
+curl -X POST http://209.38.0.81/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email":"zicong.shao@mail.utoronto.ca","password":"12345","name":"Zicong"}'
 
 # Register Alex
-curl -X POST http://152.42.145.25/auth/register \
+curl -X POST http://209.38.0.81/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email":"a.chia@mail.utoronto.ca","password":"12345","name":"Alex"}'
 ```
@@ -274,19 +274,19 @@ kubectl exec postgres-0 -n taskmanager -- \
 
 ```bash
 # Login and save cookies
-curl -X POST http://152.42.145.25/auth/login \
+curl -X POST http://209.38.0.81/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"zicong.shao@mail.utoronto.ca","password":"12345"}' \
   -c cookies.txt
 
 # Create a task
-curl -X POST http://152.42.145.25/tasks \
+curl -X POST http://209.38.0.81/tasks \
   -H "Content-Type: application/json" \
   -d '{"project_id":1,"title":"Complete ECE1779 Assignment","description":"Finish the cloud computing project","assignees":[1,2]}' \
   -b cookies.txt
 
 # List tasks
-curl http://152.42.145.25/tasks -b cookies.txt
+curl http://209.38.0.81/tasks -b cookies.txt
 ```
 
 ---
@@ -299,7 +299,7 @@ Create multiple tasks for demonstration:
 
 ```powershell
 # Login as Zicong
-$loginResponse = Invoke-WebRequest -Uri http://152.42.145.25/auth/login -Method Post `
+$loginResponse = Invoke-WebRequest -Uri http://209.38.0.81/auth/login -Method Post `
   -ContentType 'application/json' `
   -Body '{"email":"zicong.shao@mail.utoronto.ca","password":"12345"}' `
   -SessionVariable session
@@ -322,7 +322,7 @@ foreach ($task in $tasks) {
     } | ConvertTo-Json
 
     Write-Host "Creating task: $($task.title)"
-    Invoke-RestMethod -Uri http://152.42.145.25/tasks -Method Post `
+    Invoke-RestMethod -Uri http://209.38.0.81/tasks -Method Post `
       -ContentType 'application/json' `
       -Body $taskData `
       -WebSession $session
@@ -339,7 +339,7 @@ Write-Host "✅ Created $($tasks.Count) demo tasks!"
 #!/bin/bash
 
 # Login and save cookies
-curl -s -X POST http://152.42.145.25/auth/login \
+curl -s -X POST http://209.38.0.81/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"zicong.shao@mail.utoronto.ca","password":"12345"}' \
   -c cookies.txt > /dev/null
@@ -354,7 +354,7 @@ declare -a tasks=(
 )
 
 for task in "${tasks[@]}"; do
-  curl -s -X POST http://152.42.145.25/tasks \
+  curl -s -X POST http://209.38.0.81/tasks \
     -H "Content-Type: application/json" \
     -d "$task" \
     -b cookies.txt > /dev/null
@@ -413,12 +413,12 @@ The page monitors three types of real-time events:
 
 1. **Open the real-time page** in one browser window:
    ```
-   http://152.42.145.25/realtime.html
+   http://209.38.0.81/realtime.html
    ```
 
 2. **Open the main app** in another window:
    ```
-   http://152.42.145.25/
+   http://209.38.0.81/
    ```
 
 3. **Login** as Zicong or Alex and create/update tasks
@@ -435,13 +435,13 @@ Run this PowerShell script to see all three event types in action:
 # Save as demo-realtime.ps1
 
 # Open the realtime page in a browser
-Start-Process "http://152.42.145.25/realtime.html"
+Start-Process "http://209.38.0.81/realtime.html"
 Write-Host "`nWatch the browser for real-time updates...`n" -ForegroundColor Cyan
 Start-Sleep -Seconds 3
 
 # Login as Zicong
 Write-Host "1. Logging in as Zicong..." -ForegroundColor Yellow
-$loginResponse = Invoke-WebRequest -Uri http://152.42.145.25/auth/login -Method Post `
+$loginResponse = Invoke-WebRequest -Uri http://209.38.0.81/auth/login -Method Post `
   -ContentType 'application/json' `
   -Body '{"email":"zicong.shao@mail.utoronto.ca","password":"12345"}' `
   -SessionVariable session
@@ -455,7 +455,7 @@ $taskData = @{
     assignees = @(1)
 } | ConvertTo-Json
 
-$task = Invoke-RestMethod -Uri http://152.42.145.25/tasks -Method Post `
+$task = Invoke-RestMethod -Uri http://209.38.0.81/tasks -Method Post `
   -ContentType 'application/json' -Body $taskData -WebSession $session
 $taskId = $task.id
 Write-Host "   ✓ Created task #$taskId" -ForegroundColor Green
@@ -464,7 +464,7 @@ Start-Sleep -Seconds 2
 # Assign another user (triggers 'assigned' event)
 Write-Host "3. Assigning task to Alex (watch for 'assigned' event)..." -ForegroundColor Yellow
 $assignData = @{ user_ids = @(2) } | ConvertTo-Json
-Invoke-RestMethod -Uri "http://152.42.145.25/tasks/$taskId/assignees" -Method Post `
+Invoke-RestMethod -Uri "http://209.38.0.81/tasks/$taskId/assignees" -Method Post `
   -ContentType 'application/json' -Body $assignData -WebSession $session
 Write-Host "   ✓ Assigned task #$taskId to Alex (user 2)" -ForegroundColor Green
 Start-Sleep -Seconds 2
@@ -472,7 +472,7 @@ Start-Sleep -Seconds 2
 # Update status to In Progress (triggers 'status_changed' event)
 Write-Host "4. Changing status to 'In Progress' (watch for 'status' event)..." -ForegroundColor Yellow
 $statusData = @{ status = "In Progress" } | ConvertTo-Json
-Invoke-RestMethod -Uri "http://152.42.145.25/tasks/$taskId/status" -Method Patch `
+Invoke-RestMethod -Uri "http://209.38.0.81/tasks/$taskId/status" -Method Patch `
   -ContentType 'application/json' -Body $statusData -WebSession $session
 Write-Host "   ✓ Status changed to 'In Progress'" -ForegroundColor Green
 Start-Sleep -Seconds 2
@@ -480,7 +480,7 @@ Start-Sleep -Seconds 2
 # Update status to Done (triggers another 'status_changed' event)
 Write-Host "5. Completing task (watch for 'status' event)..." -ForegroundColor Yellow
 $statusData = @{ status = "Done" } | ConvertTo-Json
-Invoke-RestMethod -Uri "http://152.42.145.25/tasks/$taskId/status" -Method Patch `
+Invoke-RestMethod -Uri "http://209.38.0.81/tasks/$taskId/status" -Method Patch `
   -ContentType 'application/json' -Body $statusData -WebSession $session
 Write-Host "   ✓ Status changed to 'Done'" -ForegroundColor Green
 Start-Sleep -Seconds 1
@@ -501,20 +501,20 @@ Write-Host "  • created  #$taskId ""Demo Real-time Task""" -ForegroundColor Gr
 
 # Save as demo-realtime.sh and run: chmod +x demo-realtime.sh && ./demo-realtime.sh
 
-echo -e "\n\033[0;36mOpen http://152.42.145.25/realtime.html in your browser now!\033[0m"
+echo -e "\n\033[0;36mOpen http://209.38.0.81/realtime.html in your browser now!\033[0m"
 echo "Press Enter when ready..."
 read
 
 # Login as Zicong
 echo -e "\n\033[0;33m1. Logging in as Zicong...\033[0m"
-curl -s -X POST http://152.42.145.25/auth/login \
+curl -s -X POST http://209.38.0.81/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"zicong.shao@mail.utoronto.ca","password":"12345"}' \
   -c cookies.txt > /dev/null
 
 # Create a task
 echo -e "\033[0;33m2. Creating a task (watch for 'created' event)...\033[0m"
-TASK_RESPONSE=$(curl -s -X POST http://152.42.145.25/tasks \
+TASK_RESPONSE=$(curl -s -X POST http://209.38.0.81/tasks \
   -H "Content-Type: application/json" \
   -d '{"project_id":1,"title":"Demo Real-time Task","description":"Watch the events appear!","assignees":[1]}' \
   -b cookies.txt)
@@ -524,7 +524,7 @@ sleep 2
 
 # Assign another user
 echo -e "\033[0;33m3. Assigning task to Alex (watch for 'assigned' event)...\033[0m"
-curl -s -X POST http://152.42.145.25/tasks/$TASK_ID/assignees \
+curl -s -X POST http://209.38.0.81/tasks/$TASK_ID/assignees \
   -H "Content-Type: application/json" \
   -d '{"user_ids":[2]}' \
   -b cookies.txt > /dev/null
@@ -533,7 +533,7 @@ sleep 2
 
 # Update status to In Progress
 echo -e "\033[0;33m4. Changing status to 'In Progress' (watch for 'status' event)...\033[0m"
-curl -s -X PATCH http://152.42.145.25/tasks/$TASK_ID/status \
+curl -s -X PATCH http://209.38.0.81/tasks/$TASK_ID/status \
   -H "Content-Type: application/json" \
   -d '{"status":"In Progress"}' \
   -b cookies.txt > /dev/null
@@ -542,7 +542,7 @@ sleep 2
 
 # Update status to Done
 echo -e "\033[0;33m5. Completing task (watch for 'status' event)...\033[0m"
-curl -s -X PATCH http://152.42.145.25/tasks/$TASK_ID/status \
+curl -s -X PATCH http://209.38.0.81/tasks/$TASK_ID/status \
   -H "Content-Type: application/json" \
   -d '{"status":"Done"}' \
   -b cookies.txt > /dev/null

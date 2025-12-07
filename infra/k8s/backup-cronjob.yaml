@@ -1,0 +1,117 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: spaces-credentials
+  namespace: taskmanager
+type: Opaque
+stringData:
+  # IMPORTANT: Replace these with your actual Spaces credentials!
+  AWS_ACCESS_KEY_ID: "DO00T634KN83VMBL7NJW"
+  AWS_SECRET_ACCESS_KEY: "L+pBrJ6WJXMtpGgWQOeu9z9l9OLyTq+HphF0gxr0xiE"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-config
+  namespace: taskmanager
+data:
+  SPACES_BUCKET: "taskmanager-backups"
+  SPACES_ENDPOINT: "https://tor1.digitaloceanspaces.com"
+  SPACES_REGION: "tor1"
+  DB_HOST: "postgres-service"
+  DB_USER: "taskapp"
+  DB_NAME: "taskdb"
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: database-backup
+  namespace: taskmanager
+spec:
+  # Schedule: Every 6 hours
+  # Cron format: minute hour day month weekday
+  # Examples:
+  #   "0 */6 * * *"  - Every 6 hours
+  #   "0 2 * * *"    - Daily at 2am
+  #   "0 * * * *"    - Every hour
+  #   "*/30 * * * *" - Every 30 minutes
+  schedule: "0 */6 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: backup
+            image: alpine:3.19
+            command: ["/bin/sh", "-c"]
+            args:
+            - |
+              set -e
+              echo "============================================"
+              echo "Database Backup - $(date)"
+              echo "============================================"
+              
+              # Install required tools
+              apk add --no-cache postgresql16-client aws-cli
+              
+              # Generate backup filename
+              TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+              BACKUP_FILE="taskdb_${TIMESTAMP}.sql"
+              
+              echo "Creating backup: $BACKUP_FILE"
+              
+              # Create backup using pg_dump
+              PGPASSWORD="${DB_PASSWORD}" pg_dump -h ${DB_HOST} -U ${DB_USER} ${DB_NAME} > /tmp/${BACKUP_FILE}
+              
+              FILESIZE=$(stat -c%s "/tmp/${BACKUP_FILE}" 2>/dev/null || stat -f%z "/tmp/${BACKUP_FILE}")
+              echo "Backup created: ${BACKUP_FILE} (${FILESIZE} bytes)"
+              
+              # Upload to Spaces
+              echo "Uploading to Spaces..."
+              aws s3 cp /tmp/${BACKUP_FILE} s3://${SPACES_BUCKET}/db-backups/${BACKUP_FILE} \
+                --endpoint-url ${SPACES_ENDPOINT} \
+                --region ${SPACES_REGION}
+              
+              echo "Upload complete: s3://${SPACES_BUCKET}/db-backups/${BACKUP_FILE}"
+              
+              # List recent backups
+              echo ""
+              echo "Recent backups:"
+              aws s3 ls s3://${SPACES_BUCKET}/db-backups/ \
+                --endpoint-url ${SPACES_ENDPOINT} \
+                --region ${SPACES_REGION} | tail -5
+              
+              echo ""
+              echo "============================================"
+              echo "Backup Complete!"
+              echo "============================================"
+            env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: taskmanager-secrets
+                  key: postgres-password
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: spaces-credentials
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: spaces-credentials
+                  key: AWS_SECRET_ACCESS_KEY
+            envFrom:
+            - configMapRef:
+                name: backup-config
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "100m"
+              limits:
+                memory: "256Mi"
+                cpu: "500m"

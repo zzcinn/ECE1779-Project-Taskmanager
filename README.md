@@ -383,5 +383,32 @@ The backup logic lives under the `infra/` folder and is implemented in:
   # Inspect output/errors of a specific job instance
   Receive-Job -Id <jobId> -Keep
 
+## CI pipeline
 
+### The purpose of CI pipeline
+  # • Automatically runs on every push and pull request to the main branches (main and k8s-feature).
+        • Checks out the repository and installs Node.js on a clean GitHub-hosted runner.
+    • Installs API dependencies in the api folder using npm ci and package-lock.json so that the same versions are used locally and in CI.
+        • Runs npm test in the api folder to execute the Jest + Supertest health-check test for GET /health.
+        • Marks the commit or pull request as “passing” or “failing” based on whether dependencies install successfully and the tests pass.
+        • Provides detailed logs for each step so a reviewer can see exactly where a failure occurs (dependency error, test failure, etc.).
 
+### If you are reviewing the project in our original GitHub repository:
+
+  #
+   Open the repository on GitHub.
+   Click the “Actions” tab at the top.
+   If GitHub shows a banner like “Workflows are disabled for this repository”, click the button to enable them.
+   After workflows are enabled:
+   Any new commit pushed to main or k8s-feature will automatically trigger the CI pipeline.
+   Any pull request targeting main or k8s-feature will also trigger the CI pipeline.
+
+  #
+   In the Actions tab:
+   Click the latest run to see details.
+   You will see steps such as:
+   Checkout repository
+   Set up Node.js
+   Install dependencies in the api folder using npm ci
+   Run tests in the api folder using npm test
+   If all steps show green check marks, the CI run has succeeded.

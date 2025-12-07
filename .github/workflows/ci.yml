@@ -1,0 +1,48 @@
+name: CI (build & test)
+
+on:
+  push:
+    branches:
+      - main
+      - k8s-feature
+  pull_request:
+    branches:
+      - main
+      - k8s-feature
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: api
+        run: npm ci
+
+      - name: Run tests if defined
+        working-directory: api
+        run: |
+          if grep -q "\"test\"" package.json; then
+            npm test
+          else
+            echo "No test script defined, skipping tests."
+          fi
+
+      - name: Run build if defined
+        working-directory: api
+        run: |
+          if grep -q "\"build\"" package.json; then
+            npm run build
+          else
+            echo "No build script defined, skipping build."
+          fi
+
+

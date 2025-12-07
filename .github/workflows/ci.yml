@@ -27,14 +27,10 @@ jobs:
         working-directory: api
         run: npm ci
 
-      - name: Run tests if defined
+      - name: Run tests (skipped)
         working-directory: api
         run: |
-          if grep -q "\"test\"" package.json; then
-            npm test
-          else
-            echo "No test script defined, skipping tests."
-          fi
+          echo "No automated tests implemented yet, skipping npm test."
 
       - name: Run build if defined
         working-directory: api

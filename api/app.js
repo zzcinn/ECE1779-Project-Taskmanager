@@ -34,7 +34,12 @@ const sessionMiddleware = session({
   saveUninitialized: false,
   cookie: { httpOnly: true, sameSite: "lax", maxAge: 1000 * 60 * 60 * 12 },
 });
-app.use(sessionMiddleware);
+if (process.env.NODE_ENV !== "test") {
+  app.use(sessionMiddleware);
+}
+app.get("/health", (_req, res) => {
+  res.status(200).send("OK");
+});
 
 const server = http.createServer(app);
 const io = new IOServer(server, { cors: { origin: "*" } });
@@ -281,4 +286,12 @@ app.get("/tasks/:id/activity", requireAuth, async (req, res) => {
 
 const port = Number(process.env.PORT || 3000);
 
-server.listen(port, () => console.log(`[task-api] listening on http://localhost:${port}`));
+if (process.env.NODE_ENV !== "test") {
+  server.listen(port, () =>
+    console.log(`[task-api] listening on http://localhost:${port}`)
+  );
+}
+
+export { app, server };
+export default app;
+

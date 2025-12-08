@@ -413,3 +413,40 @@ The backup logic lives under the `infra/` folder and is implemented in:
    Install dependencies in the api folder using npm ci
    Run tests in the api folder using npm test
    If all steps show green check marks, the CI run has succeeded.
+
+## CD pipeline
+
+### The purpose of CD pipeline
+        • Triggered when the CI job has passed for main or k8s-feature.
+        • Applies doctl with DIGITALOCEAN_ACCESS_TOKEN 
+        • Logs in to DigitalOcean Container Registry by DO_REGISTRY.
+        • Builds a Docker image based on the api directory with a tag name of $REGISTRY/task-api:latest.
+        • Pushes this image to a registry accessible for pulling by this cluster.
+        • Retrieves a kubeconfig for a Kubernetes cluster using DO_CLUSTER_NAME.
+        • Executes kubectl apply -f infra/k8s to synchronize deployments, services, cron jobs, Postgres, and more.
+        • Executes kubectl rollout restart deployment/taskmanager-api -n taskmanager to refresh the API pods with the latest image.
+
+### If you are reviewing the project in our original GitHub repository:
+
+#
+Three GitHub Actions secrets:
+DIGITALOCEAN_ACCESS_TOKEN – DigitalOcean personal access token.
+DO_REGISTRY – registry.digitalocean.com/taskmanager-registry.
+DO_CLUSTER_NAME – taskmanager-cluster.
+
+After pushing commit
+Wait for the CI job to turn green.
+
+#
+In the “Actions” tab:
+Open the latest workflow run.
+Click the job named “Deploy to DigitalOcean Kubernetes”.
+You should see steps like:
+Install doctl (DigitalOcean CLI)  
+Auth doctl with DigitalOcean token  
+Log in to DigitalOcean Container Registry  
+Build and push API image  
+Save kubeconfig for cluster  
+Apply Kubernetes manifests  
+
+If all of these steps have green check marks, the CD run is successful and the new API version is running on the DigitalOcean Kubernetes cluster.

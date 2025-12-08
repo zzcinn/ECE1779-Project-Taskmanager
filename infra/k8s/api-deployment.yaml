@@ -15,9 +15,6 @@ spec:
     spec:
       containers:
       - name: api
-        # You'll need to build and push your image to a container registry
-        # For DigitalOcean, you can use their Container Registry
-        # Example: registry.digitalocean.com/your-registry/taskmanager-api:latest
         image: registry.digitalocean.com/taskmanager-registry/taskmanager-api:latest
         imagePullPolicy: Always
         ports:
@@ -91,7 +88,6 @@ spec:
           limits:
             memory: "256Mi"
             cpu: "500m"
-      # Add init container to wait for database
       initContainers:
       - name: wait-for-db
         image: busybox:1.36

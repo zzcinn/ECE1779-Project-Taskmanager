@@ -2,102 +2,508 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>ECE1779 Task Manager � Mini UI</title>
+  <title>ECE1779 Task Manager – Mini UI</title>
   <style>
-    body { font-family: system-ui, Arial, sans-serif; margin: 20px; max-width: 980px; }
-    h1 { margin-bottom: 4px; }
-    h2 { margin-top: 24px; }
-    label { display:block; margin:4px 0; }
-    input, select, button { margin:2px 0; padding:4px; }
-    input, select { min-width: 220px; }
-    section { border:1px solid #ddd; padding:10px 14px; border-radius:8px; margin:10px 0; }
-    pre { background:#f8f8f8; padding:8px; border-radius:6px; max-height:260px; overflow:auto; }
-    #log { max-height:140px; }
-    small { color:#666; }
+    :root {
+      --bg: #f4f5fb;
+      --card-bg: #ffffff;
+      --border: #e0e3ef;
+      --primary: #2563eb;
+      --primary-soft: rgba(37, 99, 235, 0.08);
+      --danger: #b91c1c;
+      --text-main: #111827;
+      --text-muted: #6b7280;
+      --success: #16a34a;
+      --radius: 12px;
+      --shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      margin: 0;
+      padding: 24px;
+      background: radial-gradient(circle at top left, #e0edff 0, #f4f5fb 40%, #f9fafb 100%);
+      color: var(--text-main);
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 20px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    header h1 span.badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--primary-soft);
+      color: var(--primary);
+      border: 1px solid rgba(37, 99, 235, 0.25);
+    }
+
+    header p {
+      margin: 6px 0 0;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 2fr);
+      gap: 18px;
+    }
+
+    @media (max-width: 900px) {
+      main {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    section.card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 14px 16px 16px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+
+    section.card h2 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    section.card h2 small {
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--text-muted);
+    }
+
+    h3 {
+      margin: 12px 0 6px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .form-row {
+      margin-bottom: 8px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      margin-bottom: 2px;
+      color: #4b5563;
+    }
+
+    input, select, button {
+      font: inherit;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid #cbd5f5;
+      background: #f9fafb;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--primary);
+      background: #ffffff;
+      box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.35);
+    }
+
+    button {
+      margin-top: 4px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: none;
+      background: var(--primary);
+      color: #ffffff;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s ease, transform 0.05s ease, box-shadow 0.15s ease;
+      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.35);
+    }
+
+    button:hover {
+      background: #1d4ed8;
+      transform: translateY(-0.5px);
+      box-shadow: 0 6px 14px rgba(37, 99, 235, 0.4);
+    }
+
+    button:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+    }
+
+    button.secondary {
+      background: rgba(15, 23, 42, 0.04);
+      color: #111827;
+      box-shadow: none;
+      border: 1px solid #d1d5db;
+    }
+
+    button.secondary:hover {
+      background: rgba(15, 23, 42, 0.06);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+      color: #4b5563;
+    }
+
+    .pill.ok {
+      border-color: rgba(22, 163, 74, 0.35);
+      background: rgba(22, 163, 74, 0.06);
+      color: var(--success);
+    }
+
+    .pill.bad {
+      border-color: rgba(185, 28, 28, 0.35);
+      background: rgba(185, 28, 28, 0.06);
+      color: var(--danger);
+    }
+
+    #login-status {
+      margin-top: 6px;
+      font-size: 12px;
+    }
+
+    pre {
+      background: #0b1220;
+      color: #e5e7eb;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      max-height: 260px;
+      overflow: auto;
+      line-height: 1.4;
+      border: 1px solid #111827;
+    }
+
+    #log {
+      max-height: 140px;
+    }
+
+    .log-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .helper-text {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 8px;
+    }
+
+    @media (max-width: 700px) {
+      .two-col {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+
+    th, td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      font-weight: 600;
+      color: var(--text-muted);
+      background: #f9fafb;
+    }
+
+    .pill-status {
+      display: inline-flex;
+      padding: 1px 6px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: #eef2ff;
+      color: #3730a3;
+    }
+
+    .pill-status.Done {
+      background: #dcfce7;
+      color: #15803d;
+    }
+
+    .pill-status["In Progress"],
+    .pill-status.In\ Progress {
+      background: #fef9c3;
+      color: #92400e;
+    }
+
+    .badge-small {
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: #ecfdf5;
+      color: #15803d;
+    }
   </style>
 </head>
 <body>
-  <h1>ECE1779 Task Manager</h1>
+<div class="container">
+  <header>
+    <h1>
+      ECE1779 Task Manager
+      <span class="badge">mini admin console</span>
+    </h1>
+    <p>Login, create projects and tasks, assign members, update status, search, and inspect activity logs.</p>
+  </header>
 
-  <section>
-    <h2>1. Login</h2>
-    <label>Email:
-      <input id="login-email" value="zicong.shao@mail.utoronto.ca">
-    </label>
-    <label>Password:
-      <input id="login-password" type="password" value="12345">
-    </label>
-    <button id="btn-login">Login</button>
-    <div id="login-status"></div>
-  </section>
+  <main>
+    <div class="col-left">
+      <section class="card">
+        <h2>
+          1. Login
+          <small>Authenticate and keep session cookies</small>
+        </h2>
+        <div class="form-row">
+          <label>Email</label>
+          <input id="login-email" value="zicong.shao@mail.utoronto.ca">
+        </div>
+        <div class="form-row">
+          <label>Password</label>
+          <input id="login-password" type="password" value="12345">
+        </div>
+        <button id="btn-login">Login</button>
+        <div id="login-status"></div>
+        <p class="helper-text">Once logged in, all API calls reuse the same session.</p>
+      </section>
 
-  <section>
-    <h2>2. Create Task</h2>
-    <label>Project ID:
-      <input id="create-project-id" placeholder="e.g. 1">
-    </label>
-    <label>Title:
-      <input id="create-title" placeholder="Kickoff meeting">
-    </label>
-    <label>Description:
-      <input id="create-desc" placeholder="Optional">
-    </label>
-    <label>Assignee IDs (comma separated):
-      <input id="create-assignees" placeholder="e.g. 3">
-    </label>
-    <button id="btn-create-task">Create Task</button>
-  </section>
+      <section class="card">
+        <h2>
+          2. Create Project
+          <small>Attach a project to an existing team</small>
+        </h2>
+        <p class="helper-text">You must belong to the team to create a project under it.</p>
+        <div class="form-row">
+          <label>Team ID</label>
+          <input id="create-project-team-id" placeholder="e.g. 1">
+        </div>
+        <div class="form-row">
+          <label>Project name</label>
+          <input id="create-project-name" placeholder="Demo project A">
+        </div>
+        <button id="btn-create-project">Create Project</button>
+        <p class="helper-text" id="create-project-status"></p>
+      </section>
 
-  <section>
-    <h2>3. Assign & Change Status</h2>
-    <label>Task ID:
-      <input id="task-id" placeholder="Task ID">
-    </label>
-    <label>Assignee IDs (comma separated):
-      <input id="assign-assignees" placeholder="e.g. 3,4">
-    </label>
-    <button id="btn-assign">Add Assignees</button>
-    <br>
-    <label>Status:
-      <select id="status">
-        <option>To-Do</option>
-        <option>In Progress</option>
-        <option>Done</option>
-      </select>
-    </label>
-    <button id="btn-status">Update Status</button>
-  </section>
+      <section class="card">
+        <h2>
+          3. Create Task
+          <small>Minimal payload for demo</small>
+        </h2>
+        <div class="form-row">
+          <label>Project ID</label>
+          <input id="create-project-id" placeholder="e.g. 1">
+        </div>
+        <div class="form-row">
+          <label>Title</label>
+          <input id="create-title" placeholder="Kickoff meeting">
+        </div>
+        <div class="form-row">
+          <label>Description</label>
+          <input id="create-desc" placeholder="Optional">
+        </div>
+        <div class="form-row">
+          <label>Assignee IDs (comma-separated)</label>
+          <input id="create-assignees" placeholder="e.g. 3">
+          <div class="helper-text">If provided, users will be assigned and an activity log entry is created.</div>
+        </div>
+        <button id="btn-create-task">Create Task</button>
+        <p class="helper-text">On success, the new task ID is filled into the controls below.</p>
+      </section>
 
-  <section>
-    <h2>4. View Tasks, Search & Activity</h2>
-    <h3>4.1 Search / list tasks</h3>
-    <label>Keyword:
-      <input id="search-query" placeholder="Search in title/description">
-    </label>
-    <label>Assignee ID:
-      <input id="search-assignee-id" placeholder="Filter by assignee_id">
-    </label>
-    <button id="btn-load-tasks">Load My Tasks</button>
-    <pre id="tasks"></pre>
+      <section class="card">
+        <div class="log-header">
+          <h2>Log</h2>
+          <button class="secondary" id="btn-clear-log">Clear</button>
+        </div>
+        <p class="helper-text">Client-side log of API calls and errors (most recent at the top).</p>
+        <pre id="log"></pre>
+      </section>
+    </div>
 
-    <h3>4.2 Activity timeline</h3>
-    <label>Task ID for activity:
-      <input id="activity-task-id" placeholder="Task ID">
-    </label>
-    <button id="btn-activity">Load Activity</button>
-    <pre id="activity"></pre>
-  </section>
+    <div class="col-right">
+      <section class="card">
+        <h2>
+          4. Assign & Change Status
+          <small>Operate on an existing task</small>
+        </h2>
 
-  <section>
-    <h2>Log</h2>
-    <pre id="log"></pre>
-  </section>
+        <div class="two-col">
+          <div>
+            <div class="form-row">
+              <label>Task ID</label>
+              <input id="task-id" placeholder="Task ID">
+            </div>
+            <div class="form-row">
+              <label>Assignee IDs (comma-separated)</label>
+              <input id="assign-assignees" placeholder="e.g. 3,4">
+            </div>
+            <button id="btn-assign">Add Assignees</button>
+          </div>
+
+          <div>
+            <div class="form-row">
+              <label>Status</label>
+              <select id="status">
+                <option>To-Do</option>
+                <option>In Progress</option>
+                <option>Done</option>
+              </select>
+            </div>
+            <button id="btn-status">Update Status</button>
+          </div>
+        </div>
+
+        <p class="helper-text">
+          Every change writes to <code>task_activity_log</code> and is broadcast via Socket.IO
+          (<a href="/realtime.html" target="_blank">open realtime page</a>).
+        </p>
+      </section>
+
+      <section class="card">
+        <h2>
+          5. View Tasks, Search & Activity
+        </h2>
+
+        <h3>5.1 Search / list tasks</h3>
+        <p class="helper-text">Lists tasks in all teams you belong to, optionally filtered.</p>
+        <div class="two-col">
+          <div class="form-row">
+            <label>Keyword</label>
+            <input id="search-query" placeholder="Search in title/description">
+          </div>
+          <div class="form-row">
+            <label>Assignee ID</label>
+            <input id="search-assignee-id" placeholder="Filter by assignee_id">
+          </div>
+        </div>
+        <button id="btn-load-tasks">Load My Tasks</button>
+        <pre id="tasks"></pre>
+
+        <div class="two-col">
+          <div class="form-row">
+            <label>Task ID for activity</label>
+            <input id="activity-task-id" placeholder="Task ID">
+          </div>
+          <div class="form-row" style="align-self:flex-end;">
+            <button id="btn-activity">Load Activity</button>
+          </div>
+        </div>
+        <pre id="activity"></pre>
+      </section>
+
+      <section class="card">
+        <h2>
+          6. Overview & Debug
+          <small>Projects, tasks, assignees + base entities</small>
+        </h2>
+
+        <h3>6.1 Project → Tasks → Assignees</h3>
+        <p class="helper-text">
+          Uses <code>GET /tasks/overview</code> to show, per project, which tasks exist and who is assigned.
+        </p>
+        <button id="btn-load-overview">Load Overview</button>
+        <div id="overview"></div>
+
+        <h3>6.2 Debug lists</h3>
+        <p class="helper-text">
+          Helper endpoints for grading and debugging (all authenticated):
+          <code>/debug/projects</code>, <code>/debug/teams</code>, <code>/debug/users</code>.
+        </p>
+        <div class="form-row">
+          <button id="btn-load-projects" class="secondary">Load Projects</button>
+          <button id="btn-load-teams" class="secondary">Load Teams</button>
+          <button id="btn-load-users" class="secondary">Load Users</button>
+        </div>
+        <h3>Projects</h3>
+        <pre id="debug-projects"></pre>
+        <h3>Teams</h3>
+        <pre id="debug-teams"></pre>
+        <h3>Users</h3>
+        <pre id="debug-users"></pre>
+      </section>
+    </div>
+  </main>
+</div>
 
 <script>
   const logEl = document.getElementById("log");
+
   function log(msg) {
     const time = new Date().toLocaleTimeString();
     logEl.textContent = "[" + time + "] " + msg + "\n" + logEl.textContent;
+  }
+
+  document.getElementById("btn-clear-log").onclick = () => {
+    logEl.textContent = "";
+  };
+
+  function escapeHtml(str) {
+    return String(str ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
   }
 
   async function api(path, options = {}) {
@@ -124,11 +530,37 @@
         method: "POST",
         body: JSON.stringify({ email, password })
       });
-      document.getElementById("login-status").textContent =
-        "Logged in as " + data.email + " (id " + data.id + ")";
+      document.getElementById("login-status").innerHTML =
+        `<span class="pill ok">Logged in</span> <span style="margin-left:6px;">${escapeHtml(data.email)} (id ${data.id})</span>`;
       log("Login success");
     } catch (err) {
-      document.getElementById("login-status").textContent = "Login failed";
+      document.getElementById("login-status").innerHTML =
+        `<span class="pill bad">Login failed</span>`;
+      log(err.message);
+    }
+  };
+
+  document.getElementById("btn-create-project").onclick = async () => {
+    const teamId = Number(document.getElementById("create-project-team-id").value);
+    const name = document.getElementById("create-project-name").value.trim();
+    const statusEl = document.getElementById("create-project-status");
+
+    if (!teamId || !name) {
+      statusEl.textContent = "Team ID and project name are required.";
+      return;
+    }
+
+    try {
+      const p = await api("/projects", {
+        method: "POST",
+        body: JSON.stringify({ team_id: teamId, name })
+      });
+      statusEl.textContent = `Created project #${p.id} (${p.name}) under team ${p.team_id}`;
+      const projectInput = document.getElementById("create-project-id");
+      if (projectInput) projectInput.value = p.id;
+      log("Created project #" + p.id + " (" + p.name + ")");
+    } catch (err) {
+      statusEl.textContent = "Failed to create project.";
       log(err.message);
     }
   };
@@ -208,6 +640,98 @@
       document.getElementById("activity").textContent = JSON.stringify(acts, null, 2);
       log("Loaded activity for #" + id);
     } catch (err) {
+      log(err.message);
+    }
+  };
+
+  document.getElementById("btn-load-overview").onclick = async () => {
+    const container = document.getElementById("overview");
+    try {
+      const items = await api("/tasks/overview");
+      if (!items.length) {
+        container.innerHTML = "<p class='helper-text'>No tasks found for the current user.</p>";
+        log("Overview: no tasks");
+        return;
+      }
+
+      const byProject = {};
+      for (const t of items) {
+        if (!byProject[t.project_id]) byProject[t.project_id] = [];
+        byProject[t.project_id].push(t);
+      }
+
+      const projectIds = Object.keys(byProject).sort((a, b) => Number(a) - Number(b));
+
+      let html = "";
+      for (const pid of projectIds) {
+        html += `<h3>Project ${pid}</h3>`;
+        html += `<table><thead><tr>
+          <th>Task ID</th>
+          <th>Title</th>
+          <th>Status</th>
+          <th>Assignees</th>
+        </tr></thead><tbody>`;
+
+        for (const t of byProject[pid]) {
+          const assignees = (t.assignees && t.assignees.length)
+            ? t.assignees.join(", ")
+            : "-";
+          const status = t.status || "";
+          const statusClass = status.replace(/\s/g, " ");
+          html += `<tr>
+            <td>${t.id}</td>
+            <td>${escapeHtml(t.title || "")}</td>
+            <td><span class="pill-status ${statusClass}">${escapeHtml(status)}</span></td>
+            <td>${escapeHtml(assignees)}</td>
+          </tr>`;
+        }
+
+        html += "</tbody></table>";
+      }
+
+      container.innerHTML = html;
+      log("Loaded project overview");
+    } catch (err) {
+      container.innerHTML = "<p class='helper-text'>Failed to load overview (is /tasks/overview implemented?).</p>";
+      log(err.message);
+    }
+  };
+
+  document.getElementById("btn-load-projects").onclick = async () => {
+    try {
+      const data = await api("/debug/projects");
+      document.getElementById("debug-projects").textContent =
+        JSON.stringify(data, null, 2);
+      log("Loaded debug projects (" + data.length + ")");
+    } catch (err) {
+      document.getElementById("debug-projects").textContent =
+        "Error loading projects (check /debug/projects).";
+      log(err.message);
+    }
+  };
+
+  document.getElementById("btn-load-teams").onclick = async () => {
+    try {
+      const data = await api("/debug/teams");
+      document.getElementById("debug-teams").textContent =
+        JSON.stringify(data, null, 2);
+      log("Loaded debug teams (" + data.length + ")");
+    } catch (err) {
+      document.getElementById("debug-teams").textContent =
+        "Error loading teams (check /debug/teams).";
+      log(err.message);
+    }
+  };
+
+  document.getElementById("btn-load-users").onclick = async () => {
+    try {
+      const data = await api("/debug/users");
+      document.getElementById("debug-users").textContent =
+        JSON.stringify(data, null, 2);
+      log("Loaded debug users (" + data.length + ")");
+    } catch (err) {
+      document.getElementById("debug-users").textContent =
+        "Error loading users (check /debug/users).";
       log(err.message);
     }
   };

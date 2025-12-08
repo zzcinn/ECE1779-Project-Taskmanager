@@ -41,4 +41,38 @@ jobs:
             echo "No build script defined, skipping build."
           fi
 
+  deploy:
+    name: Deploy to DigitalOcean Kubernetes
+    needs: build-and-test
 
+    if: github.ref == 'refs/heads/k8s-feature' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install doctl (DigitalOcean CLI)
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Log in to DigitalOcean Container Registry
+        run: doctl registry login --expiry-seconds 1200
+
+      - name: Build and push API image
+        env:
+          REGISTRY: ${{ secrets.DO_REGISTRY }}
+        run: |
+          docker build -t $REGISTRY/task-api:latest ./api
+          docker push $REGISTRY/task-api:latest
+
+      - name: Save kubeconfig for cluster
+        env:
+          CLUSTER_NAME: ${{ secrets.DO_CLUSTER_NAME }}
+        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 600 "$CLUSTER_NAME"
+
+      - name: Apply Kubernetes manifests
+        run: |
+          kubectl apply -f infra/k8s
+          kubectl rollout restart deployment/taskmanager-api -n taskmanager || true

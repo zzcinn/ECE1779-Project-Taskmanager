@@ -66,8 +66,8 @@ jobs:
         env:
           REGISTRY: ${{ secrets.DO_REGISTRY }}
         run: |
-          docker build -t $REGISTRY/task-api:latest ./api
-          docker push $REGISTRY/task-api:latest
+          docker build -t $REGISTRY/taskmanager-api:latest ./api
+          docker push $REGISTRY/taskmanager-api:latest
 
       - name: Save kubeconfig for cluster
         env:

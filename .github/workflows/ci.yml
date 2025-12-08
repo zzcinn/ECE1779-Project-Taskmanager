@@ -27,10 +27,9 @@ jobs:
         working-directory: api
         run: npm ci
 
-      - name: Run tests (skipped)
+      - name: Run tests
         working-directory: api
-        run: |
-          echo "No automated tests implemented yet, skipping npm test."
+        run: npm test
 
       - name: Run build if defined
         working-directory: api
@@ -41,10 +40,9 @@ jobs:
             echo "No build script defined, skipping build."
           fi
 
-   deploy:
+  deploy:
     name: Deploy to DigitalOcean Kubernetes
     needs: build-and-test
-
     if: github.ref == 'refs/heads/k8s-feature' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 

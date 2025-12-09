@@ -1,38 +1,230 @@
 <!doctype html>
-<meta charset="utf-8"><title>Realtime</title>
+<meta charset="utf-8">
+<title>Realtime Task Events – ECE1779</title>
 <style>
-  body{font-family:system-ui,Arial;margin:20px}
-  .ok{color:green}.bad{color:#b00}
-  li{margin:6px 0}
-</style>
-<h1>Realtime Task Events</h1>
-<p>Status: <span id="s" class="bad">disconnected</span></p>
-<ul id="feed"></ul>
+  :root {
+    --bg: #0b1120;
+    --card-bg: #020617;
+    --accent: #38bdf8;
+    --accent-soft: rgba(56, 189, 248, 0.16);
+    --ok: #22c55e;
+    --bad: #f97373;
+    --text-main: #e5e7eb;
+    --text-muted: #9ca3af;
+    --border: #1f2937;
+    --radius: 12px;
+  }
 
-<!-- ??????? socket.io ?? -->
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 24px;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    background: radial-gradient(circle at top, #0f172a 0, #020617 45%, #020617 100%);
+    color: var(--text-main);
+  }
+
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  header {
+    margin-bottom: 16px;
+  }
+
+  header h1 {
+    margin: 0 0 4px;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  header h1 span {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(56, 189, 248, 0.6);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  header p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 14px 16px 16px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
+  }
+
+  .status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+
+  .badge {
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    border: 1px solid var(--border);
+    background: rgba(15, 23, 42, 0.8);
+    color: var(--text-muted);
+  }
+
+  .badge.ok {
+    border-color: rgba(34, 197, 94, 0.6);
+    background: rgba(22, 163, 74, 0.14);
+    color: var(--ok);
+  }
+
+  .badge.bad {
+    border-color: rgba(248, 113, 113, 0.6);
+    background: rgba(248, 113, 113, 0.1);
+    color: var(--bad);
+  }
+
+  ul#feed {
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 0;
+    max-height: 360px;
+    overflow-y: auto;
+    font-size: 13px;
+  }
+
+  ul#feed li {
+    margin: 4px 0;
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid #111827;
+    background: rgba(15, 23, 42, 0.9);
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .event-main {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .event-type {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 1px 6px;
+    border-radius: 999px;
+  }
+
+  .event-type.created {
+    background: rgba(34, 197, 94, 0.12);
+    color: var(--ok);
+    border: 1px solid rgba(34, 197, 94, 0.5);
+  }
+
+  .event-type.assigned {
+    background: rgba(56, 189, 248, 0.1);
+    color: var(--accent);
+    border: 1px solid rgba(56, 189, 248, 0.5);
+  }
+
+  .event-type.status {
+    background: rgba(239, 68, 68, 0.08);
+    color: #f97373;
+    border: 1px solid rgba(248, 113, 113, 0.5);
+  }
+
+  .event-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+</style>
+
+<div class="container">
+  <header>
+    <h1>
+      Realtime Task Events
+      <span>Socket.IO stream</span>
+    </h1>
+    <p>Live feed of task_created / task_assigned / task_status_changed events from the API.</p>
+  </header>
+
+  <div class="card">
+    <div class="status-row">
+      <div>Socket status:
+        <span id="s" class="badge bad">disconnected</span>
+      </div>
+      <div class="badge">Newest events appear at the top</div>
+    </div>
+    <ul id="feed"></ul>
+  </div>
+</div>
+
 <script src="/socket.io/socket.io.js"></script>
 <script>
   const s = io();
   const label = document.getElementById("s");
   const feed  = document.getElementById("feed");
 
-  function add(msg){
+  function addEvent(type, msg) {
     const li = document.createElement("li");
-    li.textContent = msg;
+
+    const main = document.createElement("div");
+    main.className = "event-main";
+
+    const chip = document.createElement("span");
+    chip.className = "event-type " + type;
+    chip.textContent = type === "created" ? "CREATED"
+                      : type === "assigned" ? "ASSIGNED"
+                      : "STATUS";
+
+    const text = document.createElement("span");
+    text.textContent = msg;
+
+    main.appendChild(chip);
+    main.appendChild(text);
+
+    const meta = document.createElement("div");
+    meta.className = "event-meta";
+    meta.textContent = new Date().toLocaleTimeString();
+
+    li.appendChild(main);
+    li.appendChild(meta);
+
     feed.prepend(li);
   }
 
   s.on("connect", () => {
     label.textContent = "connected";
-    label.className = "ok";
+    label.className = "badge ok";
   });
 
   s.on("disconnect", () => {
     label.textContent = "disconnected";
-    label.className = "bad";
+    label.className = "badge bad";
   });
 
-  s.on("task_created", e => add(`created  #${e.id} "${e.title}"`));
-  s.on("task_assigned", e => add(`assigned #${e.id} -> [${e.user_ids}]`));
-  s.on("task_status_changed", e => add(`status   #${e.id} -> ${e.status}`));
+  s.on("task_created", e => {
+    addEvent("created", `#${e.id} "${e.title}" (project ${e.project_id})`);
+  });
+
+  s.on("task_assigned", e => {
+    addEvent("assigned", `#${e.id} → [${(e.user_ids || []).join(", ")}]`);
+  });
+
+  s.on("task_status_changed", e => {
+    addEvent("status", `#${e.id} → ${e.status}`);
+  });
 </script>

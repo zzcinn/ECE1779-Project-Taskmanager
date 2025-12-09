@@ -34,7 +34,12 @@ const sessionMiddleware = session({
   saveUninitialized: false,
   cookie: { httpOnly: true, sameSite: "lax", maxAge: 1000 * 60 * 60 * 12 },
 });
-app.use(sessionMiddleware);
+if (process.env.NODE_ENV !== "test") {
+  app.use(sessionMiddleware);
+}
+app.get("/health", (_req, res) => {
+  res.status(200).send("OK");
+});
 
 const server = http.createServer(app);
 const io = new IOServer(server, { cors: { origin: "*" } });
@@ -279,6 +284,101 @@ app.get("/tasks/:id/activity", requireAuth, async (req, res) => {
   res.json(r.rows);
 });
 
+app.get("/tasks/overview", requireAuth, async (req, res) => {
+  try {
+    const userId = req.session.user.id;
+
+    const r = await pool.query(
+      `
+      SELECT
+        t.id,
+        t.project_id,
+        t.title,
+        t.status,
+        ta.user_id AS assignee_id
+      FROM tasks t
+      JOIN projects p
+        ON t.project_id = p.id
+      JOIN team_memberships m
+        ON m.team_id = p.team_id
+      LEFT JOIN task_assignees ta
+        ON ta.task_id = t.id
+      WHERE m.user_id = $1
+      ORDER BY t.project_id, t.id DESC
+      `,
+      [userId]
+    );
+
+    const byId = new Map();
+
+    for (const row of r.rows) {
+      let item = byId.get(row.id);
+      if (!item) {
+        item = {
+          id: row.id,
+          project_id: row.project_id,
+          title: row.title,
+          status: row.status,
+          assignees: []
+        };
+        byId.set(row.id, item);
+      }
+      if (row.assignee_id && !item.assignees.includes(row.assignee_id)) {
+        item.assignees.push(row.assignee_id);
+      }
+    }
+
+    res.json(Array.from(byId.values()));
+  } catch (e) {
+    console.error("GET /tasks/overview error:", e.message);
+    res.status(500).json({ error: "server_error" });
+  }
+});
+
+app.get("/debug/projects", requireAuth, async (_req, res) => {
+  try {
+    const r = await pool.query(
+      "SELECT id, team_id, name FROM projects ORDER BY id"
+    );
+    res.json(r.rows);
+  } catch (e) {
+    console.error("GET /debug/projects error:", e.message);
+    res.status(500).json({ error: "server_error" });
+  }
+});
+
+app.get("/debug/teams", requireAuth, async (_req, res) => {
+  try {
+    const r = await pool.query(
+      "SELECT id, name FROM teams ORDER BY id"
+    );
+    res.json(r.rows);
+  } catch (e) {
+    console.error("GET /debug/teams error:", e.message);
+    res.status(500).json({ error: "server_error" });
+  }
+});
+
+app.get("/debug/users", requireAuth, async (_req, res) => {
+  try {
+    const r = await pool.query(
+      "SELECT id, email, name FROM users ORDER BY id"
+    );
+    res.json(r.rows);
+  } catch (e) {
+    console.error("GET /debug/users error:", e.message);
+    res.status(500).json({ error: "server_error" });
+  }
+});
+
 const port = Number(process.env.PORT || 3000);
 
-server.listen(port, () => console.log(`[task-api] listening on http://localhost:${port}`));
+if (process.env.NODE_ENV !== "test") {
+  server.listen(port, () =>
+    console.log(`[task-api] listening on http://localhost:${port}`)
+  );
+}
+
+export { app, server };
+export default app;
+

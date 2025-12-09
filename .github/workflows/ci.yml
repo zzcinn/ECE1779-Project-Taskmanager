@@ -1,0 +1,81 @@
+name: CI (build & test)
+
+on:
+  push:
+    branches:
+      - main
+      - k8s-feature
+  pull_request:
+    branches:
+      - main
+      - k8s-feature
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: api
+        run: npm ci
+
+      - name: Run tests
+        working-directory: api
+        run: npm test
+
+      - name: Run build if defined
+        working-directory: api
+        run: |
+          if grep -q "\"build\"" package.json; then
+            npm run build
+          else
+            echo "No build script defined, skipping build."
+          fi
+
+  deploy:
+    name: Deploy to DigitalOcean Kubernetes
+    needs: build-and-test
+    if: github.ref == 'refs/heads/k8s-feature' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install doctl (DigitalOcean CLI)
+        run: |
+          curl -sL https://github.com/digitalocean/doctl/releases/latest/download/doctl-1.147.0-linux-amd64.tar.gz \
+            | tar -xzv
+          sudo mv doctl /usr/local/bin
+
+      - name: Auth doctl with DigitalOcean token
+        run: doctl auth init -t "${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}"
+
+      - name: Log in to DigitalOcean Container Registry
+        run: doctl registry login --expiry-seconds 1200
+
+      - name: Build and push API image
+        env:
+          REGISTRY: ${{ secrets.DO_REGISTRY }}
+        run: |
+          docker build -t $REGISTRY/taskmanager-api:latest ./api
+          docker push $REGISTRY/taskmanager-api:latest
+
+      - name: Save kubeconfig for cluster
+        env:
+          CLUSTER_NAME: ${{ secrets.DO_CLUSTER_NAME }}
+        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 600 "$CLUSTER_NAME"
+
+      - name: Apply Kubernetes manifests
+        run: |
+          kubectl apply -f infra/k8s || true
+          kubectl rollout restart deployment/taskmanager-api -n taskmanager || true
+

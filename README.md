@@ -113,27 +113,78 @@ cd infra/k8s
 
 **🔧 Quick Reference:** See [infra/k8s/QUICK_REFERENCE.md](infra/k8s/QUICK_REFERENCE.md) for common commands and operations.
 
-## 📁 Project Structure
+## 💻 Web UI & Demo Walkthrough
 
+The UI is served from the `api/public/index.html` file and is available at:
+
+- Local Docker Compose: http://localhost:3000/
+- DigitalOcean Kubernetes: http://209.38.0.81/
+
+A demo flow:
+
+1. **Login**
+   - Use one of the demo accounts:
+     - `zicong.shao@mail.utoronto.ca` / `12345`
+     - `a.chia@mail.utoronto.ca` / `12345`
+   - After login, the session is stored in PostgreSQL using `connect-pg-simple`.
+
+2. **Create a team & project**
+   - Use the “Create Project” section to create a project under that team.
+
+3. **Create tasks**
+   - In the “Create Task” section, provide:
+     - `project_id`
+     - title / description
+     - optional assignee IDs (comma-separated)
+   - A task will be inserted into the `tasks` table and initial activity is logged.
+
+4. **Assign & update status**
+   - Use the “Assign” controls to add assignees to an existing task.
+   - Use the status dropdown to move a task between `To-Do`, `In Progress`, and `Done`.
+   - Each change writes an entry into `task_activity_log`.
+
+5. **Search & filter tasks**
+   - Use the “Load My Tasks” section:
+     - `query` (search in title/description)
+     - `assignee_id` filter
+
+6. **View activity timeline**
+   - Enter a task ID in the “Activity” section and click “Load Activity”.
+   - The UI calls `GET /tasks/:id/activity` and displays the chronological log.
+
+7. **Realtime events**
+   - Open a second tab at `http://localhost:3000/realtime.html` (or `http://209.38.0.81/realtime.html`).
+   - When you create/assign/update tasks in the main UI, the realtime page will show:
+     - `task_created`
+     - `task_assigned`
+     - `task_status_changed`
+
+
+## 📁 Project Structure
 ```
 ECE1779-Project-Taskmanager/
-├── api/
-│   ├── app.js              # Main application server
-│   ├── package.json        # Node.js dependencies
-│   ├── Dockerfile          # Container image definition
-│   └── public/             # Static HTML files
-│       ├── index.html      # Main UI
-│       └── realtime.html   # Real-time demo page
-├── infra/
-│   ├── compose.yml         # Docker Compose configuration
+├ .github/
+│   └── workflows/
+│       └── ci.yml                  # GitHub Actions CI/CD pipeline
+├ api/
+│   ├── app.js                      # Main application server
+│   ├── package.json                # Node.js dependencies & scripts
+│   ├── Dockerfile                  # Container image definition
+│   └── public/                     # Static HTML files
+│       ├── index.html              # Main Web UI (login, projects, tasks, overview)
+│       └── realtime.html           # Real-time task events demo (WebSockets)
+├ infra/
+│   ├── compose.yml                 # Docker Compose configuration
 │   ├── db/
-│   │   └── init.sql        # Database schema
-│   └── k8s/                # Kubernetes manifests
-│       ├── *.yaml          # K8s resource definitions
-│       ├── deploy.sh       # Deployment scripts
-│       ├── KUBERNETES_DEPLOYMENT.md    # Full K8s guide
-│       └── QUICK_REFERENCE.md          # Command reference
-└── README.md               # This file
+│   │   └── init.sql                # Database schema 
+│   ├── backups/
+│   │   ├── backup_to_spaces.ps1    # Powershell script: dump + upload DB to DO Spaces
+│   │   └── .gitignore              # Ignore local *.sql dump files
+│   └── k8s/
+│       ├── *.yaml                  # Kubernetes manifests (API, Postgres, ingress, etc.)
+│       ├── KUBERNETES_DEPLOYMENT.md# Full K8s deployment guide
+│       └── QUICK_REFERENCE.md      # Command reference
+└ README.md                         # This file
 ```
 
 ## 🔌 API Endpoints
@@ -217,7 +268,7 @@ docker build -t taskmanager-api:latest .
 - Use **environment variables** for sensitive configuration
 - Never commit secrets to version control
 
-## 📊 Monitoring & Operations
+## 📊 Operations
 
 ### Docker Compose
 
@@ -260,30 +311,32 @@ docker compose logs db
 ```bash
 # Change port in compose.yml or stop conflicting service
 ```
-
 ### Kubernetes Issues
 
 See [infra/k8s/QUICK_REFERENCE.md](infra/k8s/QUICK_REFERENCE.md) for comprehensive troubleshooting guide.
 
-## 📚 Additional Resources
+## 📈 Monitoring & Alerting (DigitalOcean)
 
-- [Docker Compose Documentation](https://docs.docker.com/compose/)
-- [Kubernetes Documentation](https://kubernetes.io/docs/)
-- [DigitalOcean Kubernetes Guide](https://docs.digitalocean.com/products/kubernetes/)
-- [Express.js Documentation](https://expressjs.com/)
-- [Socket.IO Documentation](https://socket.io/docs/)
-- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+### Cluster monitoring (DigitalOcean dashboard)
 
-## 👥 Team
+We use DigitalOcean’s built-in monitoring for the Kubernetes cluster instead of running our own Prometheus stack.
 
-ECE1779 - Team 14
-- Zicong Shao
-- Alex Chia
+- The **Insights** dashboard shows time-series graphs for the worker nodes, including:
+  - **CPU Usage** – average / max / min CPU percent over time.
+  - **Load Average** – 1 / 5 / 15 minute load averages.
+  - **Memory Usage** – percentage of node memory in use.
+  - **Disk Usage** – percentage of root disk in use.
 
-## 📝 License
+### Alerting with DigitalOcean Resource Alerts
 
-This project is part of ECE1779 course work.
+- We configured a single alert rule:
+  - **Name:** `CPU Utilization Percent is running high`
+  - **Applied to:** `All Droplets` (this includes the Kubernetes worker nodes of our cluster).
+  - **Condition:** CPU utilization **> 75%** for **5 minutes**.
+  - **Notification:** DigitalOcean sends an email notification to the project owners when the condition is met.
 
+Alerts are delivered via email to the team so that we can quickly investigate issues in the
+Kubernetes cluster.
 
 ## Automated Database Backups to DigitalOcean Spaces
 
@@ -342,6 +395,16 @@ The backup logic lives under the `infra/` folder and is implemented in:
 
  **Configure AWS CLI to use DigitalOcean Spaces**
 
+ Use the Spaces access key and secret key you created earlier:
+
+ AWS Access Key ID: <your Spaces access key>
+
+ AWS Secret Access Key: <your Spaces secret key>
+
+ Default region name: tor1
+
+ Default output format: leave blank
+
    ```powershell
    aws configure
 
@@ -359,15 +422,17 @@ The backup logic lives under the `infra/` folder and is implemented in:
   # Check local backup files
   ls .\backups
   # Expect: taskdb_YYYYMMDD-HHMMSS.sql
+  # You should see the same .sql file show in the ece1779-taskmanager-backups Space.
 
-### 4. Run these once from an Administrator PowerShell
+### 4. Schedule daily backups on Windows
+ #To avoid using any external scheduler, we use Powershell Scheduled Jobs
   # Register a daily job at 01:00 AM
   $scriptPath = (Resolve-Path .\backup_to_spaces.ps1).Path
   $trigger    = New-JobTrigger -Daily -At 1:00am
 
   Register-ScheduledJob -Name "DailyDbBackupToSpaces" -FilePath $scriptPath -Trigger $trigger
 
-  # List scheduled jobs (verify the job exists)
+  # List scheduled jobs 
   Get-ScheduledJob
   # Expect: DailyDbBackupToSpaces
 
@@ -383,8 +448,9 @@ The backup logic lives under the `infra/` folder and is implemented in:
   # Inspect output/errors of a specific job instance
   Receive-Job -Id <jobId> -Keep
   ```
-
 ## CI pipeline
+
+#### The CI pupeline runs on Github Actions and builds for health checks on API services when any change is pushed. 
 
 ### The purpose of CI pipeline
     • Automatically runs on every push and pull request to the main branches (main and k8s-feature).
@@ -396,25 +462,25 @@ The backup logic lives under the `infra/` folder and is implemented in:
 
 ### If you are reviewing the project in our original GitHub repository:
 
-  #
-   Open the repository on GitHub.
-   Click the “Actions” tab at the top.
-   If GitHub shows a banner like “Workflows are disabled for this repository”, click the button to enable them.
-   After workflows are enabled:
-   Any new commit pushed to main or k8s-feature will automatically trigger the CI pipeline.
-   Any pull request targeting main or k8s-feature will also trigger the CI pipeline.
+    • Open the repository on GitHub.
+    • Click the “Actions” tab at the top.
+    • If GitHub shows a banner like “Workflows are disabled for this repository”, click the button to enable them.
+    • After workflows are enabled:
+       Any new commit pushed to main or k8s-feature will automatically trigger the CI pipeline.
+       Any pull request targeting main or k8s-feature will also trigger the CI pipeline.
 
-  #
-   In the Actions tab:
-   Click the latest run to see details.
-   You will see steps such as:
-   Checkout repository
-   Set up Node.js
-   Install dependencies in the api folder using npm ci
-   Run tests in the api folder using npm test
-   If all steps show green check marks, the CI run has succeeded.
+  
+    In the Actions tab, click the latest run to see details.
+    You will see steps such as:
+    -Checkout repository
+    -Set up Node.js
+    -Install dependencies in the api folder using npm ci
+    -Run tests in the api folder using npm test
+    If all steps show green check marks, the CI run has succeeded.
 
 ## CD pipeline
+
+#### It is for building the Docker Image and pushing it to DigitalOcean Container Registry and deploying the latest version to Kubernetes Cluster. 
 
 ### The purpose of CD pipeline
         • Triggered when the CI job has passed for main or k8s-feature.
@@ -428,25 +494,43 @@ The backup logic lives under the `infra/` folder and is implemented in:
 
 ### If you are reviewing the project in our original GitHub repository:
 
-#
-Three GitHub Actions secrets:
-DIGITALOCEAN_ACCESS_TOKEN – DigitalOcean personal access token.
-DO_REGISTRY – registry.digitalocean.com/taskmanager-registry.
-DO_CLUSTER_NAME – taskmanager-cluster.
+### Three GitHub Actions secrets:
+    DIGITALOCEAN_ACCESS_TOKEN – DigitalOcean personal access token.
+    DO_REGISTRY – registry.digitalocean.com/taskmanager-registry.
+    DO_CLUSTER_NAME – taskmanager-cluster.
 
 After pushing commit
 Wait for the CI job to turn green.
 
 #
-In the “Actions” tab:
-Open the latest workflow run.
-Click the job named “Deploy to DigitalOcean Kubernetes”.
-You should see steps like:
-Install doctl (DigitalOcean CLI)  
-Auth doctl with DigitalOcean token  
-Log in to DigitalOcean Container Registry  
-Build and push API image  
-Save kubeconfig for cluster  
-Apply Kubernetes manifests  
+    In the “Actions” tab:
+    Open the latest workflow run.
+    Click the job named “Deploy to DigitalOcean Kubernetes”.
+    You should see steps like:
+    -Install doctl (DigitalOcean CLI)  
+    -Auth doctl with DigitalOcean token  
+    -Log in to DigitalOcean Container Registry  
+    -Build and push API image  
+    -Save kubeconfig for cluster  
+    -Apply Kubernetes manifests  
 
-If all of these steps have green check marks, the CD run is successful and the new API version is running on the DigitalOcean Kubernetes cluster.
+If all of these steps have green check marks, the CD run is successful and the new API version is running on the DigitalOcean Kubernetes cluster(reachable at http://209.38.0.81).
+
+## 📚 Additional Resources
+
+- [Docker Compose Documentation](https://docs.docker.com/compose/)
+- [Kubernetes Documentation](https://kubernetes.io/docs/)
+- [DigitalOcean Kubernetes Guide](https://docs.digitalocean.com/products/kubernetes/)
+- [Express.js Documentation](https://expressjs.com/)
+- [Socket.IO Documentation](https://socket.io/docs/)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+
+## 👥 Team
+
+ECE1779 - Team 14
+- Zicong Shao
+- Alex Chia
+
+## 📝 License
+
+This project is part of ECE1779 course work.

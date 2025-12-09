@@ -525,6 +525,8 @@ If all of these steps have green check marks, the CD run is successful and the n
 - [Socket.IO Documentation](https://socket.io/docs/)
 - [PostgreSQL Documentation](https://www.postgresql.org/docs/)
 
+## Video Demo
+Video link: https://drive.google.com/file/d/1xLMhg-oqUAymwXIA79BYuSf6rv9n2pnn/view?usp=sharing
 ## 👥 Team
 
 ECE1779 - Team 14
